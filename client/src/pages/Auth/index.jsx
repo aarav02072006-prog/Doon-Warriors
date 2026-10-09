@@ -64,9 +64,9 @@ export function AuthPage() {
         <div className="hidden md:flex flex-col justify-between p-8 bg-brand-soft border-r border-line relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-marigold/10 rounded-full blur-3xl pointer-events-none" />
           <div>
-            <span className="text-3xl font-extrabold font-display text-brand">Haat</span>
+            <span className="text-3xl font-extrabold font-display text-brand">Magic</span>
             <span className="text-xs bg-brand text-white font-semibold px-2.5 py-0.5 rounded-[999px] ml-2">
-              Meesho Lite
+              Magic by Meesho
             </span>
           </div>
           <div className="space-y-4 my-auto py-12">
@@ -81,7 +81,7 @@ export function AuthPage() {
             </p>
           </div>
           <div className="text-xs text-ink-muted">
-            © {new Date().getFullYear()} Haat Platform
+            © {new Date().getFullYear()} Magic by Meesho
           </div>
         </div>
 
@@ -108,7 +108,7 @@ export function AuthPage() {
           </div>
 
           <h3 className="text-xl font-bold font-display text-ink mb-2">
-            {tab === 'login' ? 'Welcome back' : 'Join Haat today'}
+            {tab === 'login' ? 'Welcome back' : 'Join Magic today'}
           </h3>
           <p className="text-xs text-ink-muted mb-6">
             {tab === 'login' ? 'Enter your credentials to access your account' : 'Sign up to shop, track orders, and manage wishlist'}

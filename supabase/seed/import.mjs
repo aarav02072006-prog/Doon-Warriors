@@ -43,7 +43,6 @@ async function ensureCsvExists() {
   console.info('✅ Downloaded data/meesho_generated.csv successfully')
 }
 
-// Simple seeded PRNG for deterministic stock
 function getSeededRandom(str) {
   let hash = 0
   for (let i = 0; i < str.length; i++) {
@@ -62,6 +61,46 @@ function slugify(text) {
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
+}
+
+function inferCategoryAndMaterial(title, description, rawCategory, rawMaterial) {
+  const t = (title + ' ' + (description || '')).toLowerCase()
+
+  let cat = rawCategory?.trim() || 'General'
+  let subcat = 'Miscellaneous'
+  let material = rawMaterial || 'Cotton Blend'
+
+  if (t.includes('mobile cover') || t.includes('phone') || t.includes('charger') || t.includes('cable') || t.includes('earphone') || t.includes('smartwatch')) {
+    cat = 'Electronics & Accessories'
+    subcat = 'Mobile Accessories'
+    material = 'Polycarbonate / Silicone'
+  } else if (t.includes('shoe') || t.includes('sneaker') || t.includes('sandal') || t.includes('footwear')) {
+    cat = 'Bags & Footwear'
+    subcat = 'Footwear'
+    material = 'Synthetic / Mesh'
+  } else if (t.includes('kitchen') || t.includes('cookware') || t.includes('bottle') || t.includes('container') || t.includes('bedsheet') || t.includes('pillow') || t.includes('decor')) {
+    cat = 'Home & Kitchen'
+    subcat = t.includes('kitchen') ? 'Kitchenware' : 'Home Decor'
+    material = t.includes('bedsheet') ? 'Cotton' : 'Stainless Steel / Plastic'
+  } else if (t.includes('oil') || t.includes('cream') || t.includes('shampoo') || t.includes('lipstick') || t.includes('makeup') || t.includes('face')) {
+    cat = 'Beauty & Personal Care'
+    subcat = 'Skin & Hair Care'
+    material = 'Organic Formulation'
+  } else if (t.includes('saree') || t.includes('kurti') || t.includes('suit') || t.includes('lehenga') || t.includes('ethnic')) {
+    cat = 'Women Ethnic'
+    subcat = t.includes('saree') ? 'Sarees' : 'Kurtis & Suits'
+    material = 'Cotton Blend / Silk'
+  } else if (t.includes('handbag') || t.includes('sling') || t.includes('backpack') || t.includes('bag')) {
+    cat = 'Bags & Footwear'
+    subcat = 'Bags & Wallets'
+    material = 'PU Leather / Canvas'
+  } else if (t.includes('book') || t.includes('novel') || t.includes('study')) {
+    cat = 'Books & Stationery'
+    subcat = 'Books'
+    material = 'Paper'
+  }
+
+  return { cat, subcat, material }
 }
 
 const reviewTemplates = {
@@ -103,7 +142,6 @@ async function main() {
 
   console.info(`📊 Raw CSV rows loaded: ${records.length}`)
 
-  // Deduplicate on product_id (keep first)
   const productMap = new Map()
   for (const row of records) {
     if (!productMap.has(row.product_id)) {
@@ -114,21 +152,30 @@ async function main() {
   const uniqueRows = Array.from(productMap.values())
   console.info(`✨ Deduplicated products: ${uniqueRows.length}`)
 
-  // Extract categories and subcategories
+  // Pre-process and infer category/subcat for all rows first
+  const processedRows = uniqueRows.map((row) => {
+    let title = row.title ? row.title.replace(/\s+-\s+[^-]+$/, '').trim() : 'Untitled Product'
+    const inferred = inferCategoryAndMaterial(title, row.description, row.category, row.material)
+    return {
+      ...row,
+      cleanTitle: title,
+      inferredCategory: inferred.cat,
+      inferredSubcategory: inferred.subcat,
+      inferredMaterial: inferred.material,
+    }
+  })
+
   const categoryNames = new Set()
   const subcategoryMap = new Map()
 
-  for (const row of uniqueRows) {
-    const cat = row.category?.trim() || 'General'
-    const subcat = row.subcategory?.trim() || 'Miscellaneous'
-    categoryNames.add(cat)
-    if (!subcategoryMap.has(cat)) {
-      subcategoryMap.set(cat, new Set())
+  for (const row of processedRows) {
+    categoryNames.add(row.inferredCategory)
+    if (!subcategoryMap.has(row.inferredCategory)) {
+      subcategoryMap.set(row.inferredCategory, new Set())
     }
-    subcategoryMap.get(cat).add(subcat)
+    subcategoryMap.get(row.inferredCategory).add(row.inferredSubcategory)
   }
 
-  // Upsert categories
   console.info('🗂️ Upserting categories...')
   const categoryIdMap = new Map()
   const subcategoryIdMap = new Map()
@@ -166,15 +213,14 @@ async function main() {
 
   console.info(`✅ Upserted categories and subcategories`)
 
-  // Process products
   const cleanedProducts = []
-  for (const row of uniqueRows) {
-    let title = row.title ? row.title.replace(/\s+-\s+[^-]+$/, '').trim() : 'Untitled Product'
+  for (const row of processedRows) {
     const id = row.product_id
+    const title = row.cleanTitle
     const slug = `${slugify(title)}-${id.toLowerCase().replace(/[^a-z0-9]/g, '')}`
 
-    const catId = categoryIdMap.get(row.category?.trim()) || null
-    const subcatId = subcategoryIdMap.get(`${row.category?.trim()}|${row.subcategory?.trim()}`) || null
+    const catId = categoryIdMap.get(row.inferredCategory) || null
+    const subcatId = subcategoryIdMap.get(`${row.inferredCategory}|${row.inferredSubcategory}`) || null
 
     const price = parseInt(row.discounted_price || row.original_price || 100, 10)
     const mrp = parseInt(row.original_price || price * 1.2, 10)
@@ -189,7 +235,7 @@ async function main() {
     }
     if (sizes.length === 0) sizes = ['Free Size']
 
-    const material = row.material || 'Cotton Blend'
+    const material = row.inferredMaterial
     const codAvailable = row.cod_available ? row.cod_available.toString().toLowerCase() === 'true' : true
     
     let returnDays = 0
@@ -246,7 +292,6 @@ async function main() {
     })
   }
 
-  // Upsert products in batches of 200
   console.info('📦 Upserting products in batches...')
   for (let i = 0; i < cleanedProducts.length; i += 200) {
     const batch = cleanedProducts.slice(i, i + 200)
@@ -256,7 +301,6 @@ async function main() {
     }
   }
 
-  // Mark 8 products with highest discount and stock between 1-3 as flash deals
   console.info('⚡ Assigning Flash Deals...')
   const candidateDeals = cleanedProducts
     .filter((p) => p.stock_available >= 1 && p.stock_available <= 3)
@@ -270,11 +314,9 @@ async function main() {
       .eq('id', deal.id)
   }
 
-  // Delete existing seeded reviews
   console.info('🧹 Cleaning up old seeded reviews...')
   await supabase.from('reviews').delete().eq('is_seeded', true)
 
-  // Insert seeded reviews
   console.info('✍️ Generating seeded reviews...')
   const allReviews = []
   for (const p of cleanedProducts) {

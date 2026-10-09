@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ToastProvider } from '@/components/ui/toast.jsx'
 import { AuthProvider } from '@/features/auth/AuthProvider.jsx'
 import { LiteModeProvider } from '@/features/lite-mode/LiteModeProvider.jsx'
+import { CartProvider } from '@/features/cart/CartProvider.jsx'
 import { Button } from '@/components/ui/button.jsx'
 
 const queryClient = new QueryClient({
@@ -50,9 +51,13 @@ export function Providers({ children }) {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <LiteModeProvider>
-          <ToastProvider>{children}</ToastProvider>
-        </LiteModeProvider>
+        <ToastProvider>
+          <CartProvider>
+            <LiteModeProvider>
+              {children}
+            </LiteModeProvider>
+          </CartProvider>
+        </ToastProvider>
       </AuthProvider>
     </QueryClientProvider>
   )

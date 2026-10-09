@@ -13,11 +13,21 @@ export class ApiError extends Error {
 }
 
 async function fetchWithTimeout(url, options = {}, timeout = 15000) {
+  const { signal, ...restOptions } = options
   const controller = new AbortController()
   const id = setTimeout(() => controller.abort(), timeout)
+
+  if (signal) {
+    if (signal.aborted) {
+      controller.abort()
+    } else {
+      signal.addEventListener('abort', () => controller.abort(), { once: true })
+    }
+  }
+
   try {
     const response = await fetch(url, {
-      ...options,
+      ...restOptions,
       signal: controller.signal,
     })
     clearTimeout(id)
@@ -29,7 +39,7 @@ async function fetchWithTimeout(url, options = {}, timeout = 15000) {
 }
 
 export async function apiClient(endpoint, options = {}) {
-  const { headers = {}, body, method = 'GET', ...customOptions } = options
+  const { headers = {}, body, method = 'GET', signal, ...customOptions } = options
 
   const { data: { session } } = await supabase.auth.getSession()
   const token = session?.access_token
@@ -38,6 +48,7 @@ export async function apiClient(endpoint, options = {}) {
 
   const config = {
     method,
+    signal,
     ...customOptions,
     headers: {
       'Content-Type': 'application/json',
@@ -56,14 +67,21 @@ export async function apiClient(endpoint, options = {}) {
   try {
     response = await fetchWithTimeout(url, config)
   } catch (err) {
+    if (err.name === 'AbortError' || signal?.aborted) {
+      throw err
+    }
+
     if (method === 'GET') {
       try {
         response = await fetchWithTimeout(url, config)
       } catch (retryErr) {
-        throw new ApiError(retryErr.name === 'AbortError' ? 'Request timed out' : 'Network error', 0, 'NETWORK_ERROR')
+        if (retryErr.name === 'AbortError' || signal?.aborted) {
+          throw retryErr
+        }
+        throw new ApiError('Network error', 0, 'NETWORK_ERROR')
       }
     } else {
-      throw new ApiError(err.name === 'AbortError' ? 'Request timed out' : 'Network error', 0, 'NETWORK_ERROR')
+      throw new ApiError('Network error', 0, 'NETWORK_ERROR')
     }
   }
 

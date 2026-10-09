@@ -1,12 +1,11 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { Link } from 'react-router'
 import { ProductArt } from './ProductArt.jsx'
 import { Price } from './price.jsx'
 import { Rating } from './rating.jsx'
 import { IconButton } from './button.jsx'
 import { Heart } from 'lucide-react'
-import { apiClient } from '@/lib/apiClient.js'
-import { useToast } from './toast.jsx'
+import { useWishlist } from '@/features/wishlist/hooks.js'
 
 export function ProductCard({ product }) {
   const {
@@ -26,27 +25,13 @@ export function ProductCard({ product }) {
     image_url,
   } = product
 
-  const [isWishlisted, setIsWishlisted] = useState(false)
-  const { addToast } = useToast()
+  const { isWishlisted, toggleWishlist } = useWishlist()
+  const wishlisted = isWishlisted(id)
 
-  const handleWishlistClick = async (e) => {
+  const handleWishlistClick = (e) => {
     e.preventDefault()
     e.stopPropagation()
-    const nextState = !isWishlisted
-    setIsWishlisted(nextState)
-
-    try {
-      if (nextState) {
-        await apiClient(`/me/wishlist/${id}`, { method: 'PUT' })
-        addToast({ title: 'Added to Wishlist', variant: 'success' })
-      } else {
-        await apiClient(`/me/wishlist/${id}`, { method: 'DELETE' })
-        addToast({ title: 'Removed from Wishlist', variant: 'info' })
-      }
-    } catch {
-      setIsWishlisted(!nextState)
-      addToast({ title: 'Please sign in to manage wishlist', variant: 'error' })
-    }
+    toggleWishlist(id)
   }
 
   const isOutOfStock = stock_available === 0
@@ -61,9 +46,6 @@ export function ProductCard({ product }) {
     >
       <div className="relative">
         <ProductArt
-          id={id}
-          categorySlug={category_slug || 'general'}
-          brand={brand}
           title={title}
           imageUrl={image_url}
         />
@@ -76,7 +58,7 @@ export function ProductCard({ product }) {
             size="sm"
             onClick={handleWishlistClick}
             className={`bg-card/80 backdrop-blur-xs transition-colors ${
-              isWishlisted ? '!text-chilli !bg-chilli/10' : 'text-ink hover:text-chilli'
+              wishlisted ? '!text-chilli !bg-chilli/10' : 'text-ink hover:text-chilli'
             }`}
           />
         </div>

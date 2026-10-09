@@ -10,14 +10,16 @@ import { Sheet } from '@/components/ui/sheet.jsx'
 import { Input } from '@/components/ui/input.jsx'
 import { useToast } from '@/components/ui/toast.jsx'
 import { useAuth } from '@/features/auth/AuthProvider.jsx'
+import { useCart } from '@/features/cart/CartProvider.jsx'
 import { deliveryDate } from '@/lib/format.js'
 import { ProductCard } from '@/components/ui/ProductCard.jsx'
-import { Truck, ZoomIn, X, ChevronRight } from 'lucide-react'
+import { Truck, ZoomIn, X, ChevronRight, Share2 } from 'lucide-react'
 
 export function ProductPage() {
   const { slug } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { addToCart } = useCart()
   const { addToast } = useToast()
 
   const [activeImageIndex, setActiveImageIndex] = useState(0)
@@ -96,11 +98,33 @@ export function ProductPage() {
   const isLowStock = stock_available > 0 && stock_available <= 3
 
   const galleryVariations = [
-    { label: 'Standard View', component: <ProductArt id={id} categorySlug={breadcrumb?.category?.slug} brand={brand} title={title} imageUrl={image_url} /> },
-    { label: 'Angle View', component: <ProductArt id={`${id}-alt`} categorySlug={breadcrumb?.category?.slug} brand={brand} title={title} imageUrl={image_url} /> },
-    { label: 'Detail View', component: <ProductArt id={`${id}-det`} categorySlug={breadcrumb?.category?.slug} brand={brand} title={title} imageUrl={image_url} /> },
-    { label: 'Brand View', component: <ProductArt id={`${id}-brand`} categorySlug={breadcrumb?.category?.slug} brand={brand} title={title} imageUrl={image_url} /> },
+    { label: 'Standard View', component: <ProductArt title={title} imageUrl={image_url} /> },
+    { label: 'Angle View', component: <ProductArt title={title} imageUrl={image_url} /> },
+    { label: 'Detail View', component: <ProductArt title={title} imageUrl={image_url} /> },
+    { label: 'Brand View', component: <ProductArt title={title} imageUrl={image_url} /> },
   ]
+
+  const handleShare = async () => {
+    const shareData = {
+      title: title,
+      text: `Check out ${title} on Haat at lowest price!`,
+      url: window.location.href,
+    }
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData)
+        return
+      } catch {
+        // fallback
+      }
+    }
+    try {
+      await navigator.clipboard?.writeText(window.location.href)
+      addToast({ title: 'Link Copied to Clipboard!', variant: 'success' })
+    } catch {
+      addToast({ title: 'Unable to copy link', variant: 'error' })
+    }
+  }
 
   const handleAddToCart = (andCheckout = false) => {
     if (sizes.length > 0 && !selectedSize) {
@@ -110,14 +134,15 @@ export function ProductPage() {
     }
     setSizeError(false)
 
-    addToast({
-      title: 'Added to Cart!',
-      description: `${title} (${selectedSize || 'Standard'}) added successfully.`,
-      variant: 'success',
-    })
-
     if (andCheckout) {
-      navigate('/checkout')
+      navigate('/checkout', { state: { buyNowItem: { product, qty: quantity, size: selectedSize || '' } } })
+    } else {
+      addToCart(product, quantity, selectedSize)
+      addToast({
+        title: 'Added to Cart!',
+        description: `${title} (${selectedSize || 'Standard'}) added successfully.`,
+        variant: 'success',
+      })
     }
   }
 
@@ -227,10 +252,7 @@ export function ProductPage() {
               <Link to={`/search?brands=${encodeURIComponent(brand)}`} className="text-xs font-bold text-brand uppercase tracking-wider hover:underline">
                 {brand}
               </Link>
-              <IconButton icon={Share2} label="Share product" variant="ghost" size="sm" onClick={() => {
-                navigator.clipboard?.writeText(window.location.href)
-                addToast({ title: 'Link Copied!', variant: 'success' })
-              }} />
+              <IconButton icon={Share2} label="Share product" variant="ghost" size="sm" onClick={handleShare} />
             </div>
             <h1 className="text-xl sm:text-2xl font-bold font-display text-ink leading-snug">{title}</h1>
             <div className="flex items-center gap-3 pt-1">
@@ -510,7 +532,7 @@ export function ProductPage() {
           </div>
           <Input
             label="Review Title (max 80 chars)"
-            maxLength={80}
+            maxLength80
             required
             value={newReview.title}
             onChange={(e) => setNewReview({ ...newReview, title: e.target.value })}

@@ -1,36 +1,20 @@
 import React from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { apiClient } from '@/lib/apiClient.js'
+import { useWishlist } from '@/features/wishlist/hooks.js'
 import { ProductGrid } from '@/components/ui/ProductGrid.jsx'
 import { EmptyState } from '@/components/ui/empty-state.jsx'
-import { useToast } from '@/components/ui/toast.jsx'
 import { Heart } from 'lucide-react'
 import { useNavigate } from 'react-router'
 
 export function WishlistPage() {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const { addToast } = useToast()
-
-  const { data: wishlist = [], isLoading } = useQuery({
-    queryKey: ['wishlist'],
-    queryFn: () => apiClient('/me/wishlist'),
-  })
-
-  const removeMutation = useMutation({
-    mutationFn: (productId) => apiClient(`/me/wishlist/${productId}`, { method: 'DELETE' }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['wishlist'] })
-      addToast({ title: 'Removed from Wishlist', variant: 'info' })
-    },
-  })
+  const { wishlist = [], isLoading } = useWishlist()
 
   const products = wishlist.map((w) => w.product).filter(Boolean)
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-      <title>My Wishlist | haat.</title>
-      <meta name="description" content="View and manage your saved items on Haat." />
+      <title>My Wishlist | magic.</title>
+      <meta name="description" content="View and manage your saved items on Magic." />
 
       <h1 className="text-2xl font-bold font-display text-ink">My Wishlist ({products.length})</h1>
       {products.length === 0 && !isLoading ? (

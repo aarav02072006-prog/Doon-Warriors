@@ -7,7 +7,7 @@
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "node --test tests/run.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.48.1",

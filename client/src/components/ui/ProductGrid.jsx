@@ -35,6 +35,8 @@ export function ProductGrid({ products = [], isLoading = false, skeletonCount = 
     )
   }
 
+  const validProducts = (products || []).filter((p) => p && typeof p === 'object' && p.id)
+
   return (
     <div
       className={clsx(
@@ -42,7 +44,7 @@ export function ProductGrid({ products = [], isLoading = false, skeletonCount = 
         className
       )}
     >
-      {products.map((product) => (
+      {validProducts.map((product) => (
         <ProductCard key={product.id} product={product} />
       ))}
     </div>

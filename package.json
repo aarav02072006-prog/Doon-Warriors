@@ -12,6 +12,7 @@
     "build": "npm run build --workspace=client",
     "lint": "eslint client server",
     "db:seed": "node supabase/seed/import.mjs",
+    "db:repair-images": "node supabase/seed/repair-images.mjs",
     "test": "npm test --workspace=server"
   },
   "dependencies": {

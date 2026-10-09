@@ -2,7 +2,7 @@ import { supabase } from '../config/supabase.js'
 import { ApiError } from '../utils/ApiError.js'
 import { memoryCache } from '../utils/cache.js'
 
-const PRODUCT_CARD_COLUMNS = 'id, slug, title, brand, price, mrp, discount_pct, rating, rating_count, stock_available, is_flash_deal, cod_available, delivery_days'
+const PRODUCT_CARD_COLUMNS = 'id, slug, title, brand, price, mrp, discount_pct, rating, rating_count, stock_available, is_flash_deal, cod_available, delivery_days, image_url'
 
 export const catalogService = {
   async getCategories() {
@@ -10,7 +10,6 @@ export const catalogService = {
     const cached = memoryCache.get(cacheKey)
     if (cached) return cached
 
-    // Fetch categories
     const { data: categories, error } = await supabase
       .from('categories')
       .select('id, slug, name, parent_id, sort_order')
@@ -20,10 +19,9 @@ export const catalogService = {
       throw new ApiError(500, error.message, 'DB_ERROR')
     }
 
-    // Fetch product counts per category and subcategory
     const { data: prodCounts, error: countError } = await supabase
       .from('products')
-      .select('category_id, subcategory_id')
+      .select('category_id, subcategory_id, image_url')
 
     if (countError) {
       throw new ApiError(500, countError.message, 'DB_ERROR')
@@ -31,17 +29,24 @@ export const catalogService = {
 
     const catCountMap = new Map()
     const subcatCountMap = new Map()
+    const catImageMap = new Map()
+    const subcatImageMap = new Map()
 
     for (const p of prodCounts || []) {
       if (p.category_id) {
         catCountMap.set(p.category_id, (catCountMap.get(p.category_id) || 0) + 1)
+        if (p.image_url && !catImageMap.has(p.category_id)) {
+          catImageMap.set(p.category_id, p.image_url)
+        }
       }
       if (p.subcategory_id) {
         subcatCountMap.set(p.subcategory_id, (subcatCountMap.get(p.subcategory_id) || 0) + 1)
+        if (p.image_url && !subcatImageMap.has(p.subcategory_id)) {
+          subcatImageMap.set(p.subcategory_id, p.image_url)
+        }
       }
     }
 
-    // Build tree
     const topLevel = categories.filter((c) => !c.parent_id)
     const tree = topLevel.map((parent) => {
       const children = categories
@@ -49,16 +54,18 @@ export const catalogService = {
         .map((child) => ({
           ...child,
           product_count: subcatCountMap.get(child.id) || 0,
+          image_url: subcatImageMap.get(child.id) || catImageMap.get(parent.id) || null,
         }))
 
       return {
         ...parent,
         product_count: (catCountMap.get(parent.id) || 0) + children.reduce((acc, c) => acc + c.product_count, 0),
+        image_url: catImageMap.get(parent.id) || children.find(c => c.image_url)?.image_url || null,
         children,
       }
     })
 
-    memoryCache.set(cacheKey, tree, 10 * 60 * 1000) // 10 min cache
+    memoryCache.set(cacheKey, tree, 10 * 60 * 1000)
     return tree
   },
 
@@ -83,7 +90,7 @@ export const catalogService = {
       categories,
     }
 
-    memoryCache.set(cacheKey, payload, 5 * 60 * 1000) // 5 min cache
+    memoryCache.set(cacheKey, payload, 5 * 60 * 1000)
     return payload
   },
 
@@ -131,7 +138,6 @@ export const catalogService = {
     const total = data.total || 0
     const facets = data.facets || { brands: [], price: { min: 0, max: 10000 }, categories: [] }
 
-    // Lite projection if fields=lite
     if (fields === 'lite') {
       items = items.map((item) => ({
         id: item.id,
@@ -142,6 +148,7 @@ export const catalogService = {
         discount_pct: item.discount_pct,
         rating: item.rating,
         stock_available: item.stock_available,
+        image_url: item.image_url,
       }))
     }
 
@@ -170,7 +177,6 @@ export const catalogService = {
 
     const suggestions = []
 
-    // 1. Matching categories
     const { data: cats } = await supabase
       .from('categories')
       .select('name, slug')
@@ -181,7 +187,6 @@ export const catalogService = {
       suggestions.push({ type: 'category', label: c.name, slug: c.slug })
     }
 
-    // 2. Matching brands
     const { data: brandsData } = await supabase
       .from('products')
       .select('brand')
@@ -193,7 +198,6 @@ export const catalogService = {
       if (b) suggestions.push({ type: 'brand', label: b, slug: `brand-${slugify(b)}` })
     }
 
-    // 3. Matching products
     const { data: prods } = await supabase
       .from('products')
       .select('title, slug')
@@ -205,12 +209,11 @@ export const catalogService = {
     }
 
     const limited = suggestions.slice(0, 8)
-    memoryCache.set(cacheKey, limited, 60 * 1000) // 60s cache
+    memoryCache.set(cacheKey, limited, 60 * 1000)
     return limited
   },
 
   async getProductBySlug(slug) {
-    // Fetch product with explicit columns
     const { data: product, error } = await supabase
       .from('products')
       .select('id, slug, title, description, brand, category_id, subcategory_id, price, mrp, discount_pct, rating, rating_count, colors_count, sizes, material, cod_available, return_days, delivery_days, seller_name, image_url, stock_total, stock_available, is_flash_deal, created_at')
@@ -221,7 +224,6 @@ export const catalogService = {
       throw new ApiError(404, 'Product not found', 'NOT_FOUND')
     }
 
-    // Fetch category breadcrumb
     let category = null
     let subcategory = null
     if (product.category_id) {
@@ -233,7 +235,6 @@ export const catalogService = {
       subcategory = subcat
     }
 
-    // Fetch rating breakdown (count of 1-5 stars from reviews)
     const { data: reviewsData } = await supabase
       .from('reviews')
       .select('rating')
@@ -246,7 +247,6 @@ export const catalogService = {
       }
     }
 
-    // Fetch 8 similar products (same subcategory or category, closest price)
     let similarQuery = supabase
       .from('products')
       .select(PRODUCT_CARD_COLUMNS)
@@ -276,7 +276,6 @@ export const catalogService = {
   async getProductReviews(slug, query) {
     const { page = 1, limit = 10, sort = 'recent' } = query
 
-    // First resolve slug to product_id
     const { data: product, error: prodErr } = await supabase
       .from('products')
       .select('id')
@@ -297,7 +296,6 @@ export const catalogService = {
     } else if (sort === 'rating_low') {
       reviewQuery = reviewQuery.order('rating', { ascending: true }).order('created_at', { ascending: false })
     } else {
-      // recent or helpful
       reviewQuery = reviewQuery.order('created_at', { ascending: false })
     }
 

@@ -3,9 +3,11 @@ import { Link } from 'react-router'
 import { SearchBox } from './SearchBox.jsx'
 import { ShoppingBag, Heart, User } from 'lucide-react'
 import { IconButton } from '@/components/ui/button.jsx'
+import { useCart } from '@/features/cart/CartProvider.jsx'
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
+  const { totalCount } = useCart()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -24,10 +26,10 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-4 h-14 md:h-16 flex items-center justify-between gap-4">
         <Link to="/" className="flex items-center gap-1 group">
           <span className="text-2xl font-extrabold font-display text-ink tracking-tight">
-            haat<span className="text-brand">.</span>
+            magic<span className="text-brand">.</span>
           </span>
           <span className="text-[10px] bg-brand-soft text-brand font-semibold px-2 py-0.5 rounded-[999px] hidden sm:inline-block ml-1">
-            Bharat Lite
+            Magic by Meesho
           </span>
         </Link>
 
@@ -41,9 +43,11 @@ export function Header() {
           </Link>
           <Link to="/cart" className="relative">
             <IconButton icon={ShoppingBag} label="Cart" variant="ghost" size="md" />
-            <span className="absolute top-1 right-1 w-4 h-4 bg-brand text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-              0
-            </span>
+            {totalCount > 0 && (
+              <span className="absolute top-1 right-1 w-4 h-4 bg-brand text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                {totalCount}
+              </span>
+            )}
           </Link>
           <Link to="/account">
             <IconButton icon={User} label="Account" variant="ghost" size="md" />

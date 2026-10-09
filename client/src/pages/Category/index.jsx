@@ -108,7 +108,25 @@ export function CategoryPage() {
         </nav>
         <div className="flex flex-wrap items-baseline justify-between gap-4">
           <h1 className="text-2xl font-bold font-display text-ink">{currentSub?.name || currentCat?.name || 'Catalog'}</h1>
-          <span className="text-xs font-semibold text-ink-muted">{totalResults.toLocaleString('en-IN')} products found</span>
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:flex items-center gap-2">
+              <span className="text-xs font-semibold text-ink-muted">Sort By:</span>
+              <select
+                value={sort}
+                onChange={(e) => updateParam('sort', e.target.value)}
+                className="bg-card border border-line rounded-xl px-3 py-1.5 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-brand cursor-pointer"
+              >
+                <option value="popularity">Relevance / Popularity</option>
+                <option value="price_asc">Price: Low to High</option>
+                <option value="price_desc">Price: High to Low</option>
+                <option value="rating_desc">Rating: High to Low</option>
+                <option value="rating_asc">Rating: Low to High</option>
+                <option value="name_asc">Name: A to Z</option>
+                <option value="name_desc">Name: Z to A</option>
+              </select>
+            </div>
+            <span className="text-xs font-semibold text-ink-muted">{totalResults.toLocaleString('en-IN')} products found</span>
+          </div>
         </div>
       </div>
 
@@ -333,12 +351,13 @@ export function CategoryPage() {
       <Sheet isOpen={isSortSheetOpen} onClose={() => setIsSortSheetOpen(false)} title="Sort By">
         <div className="space-y-2 pb-6">
           {[
-            { label: 'Popularity', val: 'popularity' },
+            { label: 'Relevance / Popularity', val: 'popularity' },
             { label: 'Price: Low to High', val: 'price_asc' },
             { label: 'Price: High to Low', val: 'price_desc' },
-            { label: 'Customer Rating', val: 'rating' },
-            { label: 'Discount %', val: 'discount' },
-            { label: 'Newest First', val: 'newest' },
+            { label: 'Rating: High to Low', val: 'rating_desc' },
+            { label: 'Rating: Low to High', val: 'rating_asc' },
+            { label: 'Name: A to Z', val: 'name_asc' },
+            { label: 'Name: Z to A', val: 'name_desc' },
           ].map((s) => (
             <button
               key={s.val}

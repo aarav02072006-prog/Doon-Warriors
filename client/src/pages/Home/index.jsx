@@ -3,11 +3,11 @@ import { Link, useNavigate } from 'react-router'
 import { useHome } from '@/features/catalog/hooks.js'
 import { ProductCard } from '@/components/ui/ProductCard.jsx'
 import { Button } from '@/components/ui/button.jsx'
-import { Sparkles, Zap, Flame, Tag, ShieldCheck, RefreshCw, IndianRupee, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Sparkles, Zap, Tag, ShieldCheck, RefreshCw, IndianRupee, ChevronLeft, ChevronRight } from 'lucide-react'
 
 export function HomePage() {
   const navigate = useNavigate()
-  const { data: homeData, isLoading } = useHome()
+  const { data: homeData } = useHome()
   const { flashDeals = [], topRated = [], bigDiscounts = [], under299 = [], categories = [] } = homeData || {}
 
   const [timeLeft, setTimeLeft] = useState('00:42:10')
@@ -37,14 +37,14 @@ export function HomePage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 space-y-12">
-      <title>Haat — Bazaar Prices, Zero Hassle | Meesho Value E-Commerce</title>
+      <title>Magic by Meesho — Bazaar Prices, Zero Hassle | Value E-Commerce</title>
       <meta name="description" content="Shop lakhs of top-quality products across ethnic wear, electronics, and home decor at lowest wholesale prices with fast delivery and COD." />
 
       <section className="bg-card border border-line rounded-[24px] p-6 sm:p-12 overflow-hidden shadow-sm grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
         <div className="space-y-6">
           <span className="inline-flex items-center gap-1.5 text-xs font-bold text-brand bg-brand-soft px-3 py-1 rounded-full">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>India's Value Commerce Platform</span>
+            <span>Magic by Meesho Platform</span>
           </span>
           <h1 className="text-4xl sm:text-5xl font-extrabold font-display text-ink tracking-tight leading-tight">
             Bazaar prices.{' '}
@@ -69,36 +69,67 @@ export function HomePage() {
         </div>
 
         <div className="hidden lg:grid grid-cols-2 gap-4">
-          {categories.slice(0, 4).map((cat) => (
-            <Link
-              key={cat.slug}
-              to={`/c/${cat.slug}`}
-              className="bg-paper border border-line rounded-2xl p-6 flex flex-col justify-between hover:border-brand transition-all group aspect-square shadow-xs"
-            >
-              <div className="w-10 h-10 rounded-xl bg-brand-soft text-brand flex items-center justify-center font-bold">
-                {cat.name[0]}
-              </div>
-              <div>
-                <h3 className="text-base font-bold font-display text-ink group-hover:text-brand">{cat.name}</h3>
-                <p className="text-xs text-ink-muted">{cat.product_count || 100}+ products</p>
-              </div>
-            </Link>
-          ))}
+          {categories.slice(0, 4).map((cat) => {
+            const heroImg = cat.image_url
+            return (
+              <Link
+                key={cat.slug}
+                to={`/c/${cat.slug}`}
+                className="relative overflow-hidden border border-line rounded-2xl p-6 flex flex-col justify-between hover:border-brand transition-all group aspect-square shadow-xs bg-card"
+              >
+                {heroImg ? (
+                  <div className="absolute inset-0 z-0">
+                    <img
+                      src={heroImg}
+                      alt={cat.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      className="transition-transform duration-300 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                  </div>
+                ) : (
+                  <div className="w-10 h-10 rounded-xl bg-brand-soft text-brand flex items-center justify-center font-bold z-10">
+                    {cat.name[0]}
+                  </div>
+                )}
+                <div className={`relative z-10 ${heroImg ? 'mt-auto text-white' : ''}`}>
+                  <h3 className={`text-base font-bold font-display ${heroImg ? 'text-white' : 'text-ink'} group-hover:text-brand`}>
+                    {cat.name}
+                  </h3>
+                  <p className={`text-xs ${heroImg ? 'text-white/80' : 'text-ink-muted'}`}>
+                    {cat.product_count || 100}+ products
+                  </p>
+                </div>
+              </Link>
+            )
+          })}
         </div>
 
         <div className="lg:hidden flex gap-3 overflow-x-auto no-scrollbar py-2">
-          {categories.slice(0, 6).map((cat) => (
-            <Link
-              key={cat.slug}
-              to={`/c/${cat.slug}`}
-              className="bg-paper border border-line rounded-xl p-4 min-w-[130px] flex flex-col items-center text-center gap-2 shrink-0"
-            >
-              <div className="w-10 h-10 rounded-lg bg-brand-soft text-brand flex items-center justify-center font-bold">
-                {cat.name[0]}
-              </div>
-              <span className="text-xs font-semibold text-ink truncate w-full">{cat.name}</span>
-            </Link>
-          ))}
+          {categories.slice(0, 6).map((cat) => {
+            const heroImg = cat.image_url
+            return (
+              <Link
+                key={cat.slug}
+                to={`/c/${cat.slug}`}
+                className="relative overflow-hidden border border-line rounded-xl p-4 min-w-[130px] h-[130px] flex flex-col justify-end text-center shrink-0 group bg-card"
+              >
+                {heroImg ? (
+                  <div className="absolute inset-0 z-0">
+                    <img
+                      src={heroImg}
+                      alt={cat.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                  </div>
+                ) : null}
+                <span className={`relative z-10 text-xs font-bold truncate w-full ${heroImg ? 'text-white' : 'text-ink'}`}>
+                  {cat.name}
+                </span>
+              </Link>
+            )
+          })}
         </div>
       </section>
 
@@ -184,16 +215,28 @@ export function HomePage() {
             <Link
               key={cat.slug}
               to={`/c/${cat.slug}`}
-              className="bg-card border border-line rounded-[16px] p-4 text-center flex flex-col items-center justify-center gap-2.5 hover:border-brand transition-all group shadow-xs"
+              className="relative overflow-hidden bg-card border border-line rounded-[16px] p-4 text-center flex flex-col items-center justify-center gap-2.5 hover:border-brand transition-all group shadow-xs aspect-square"
             >
-              <div className="w-14 h-14 rounded-2xl bg-brand-soft text-brand flex items-center justify-center font-bold text-xl group-hover:scale-105 transition-transform shadow-xs">
-                {cat.name[0]}
-              </div>
-              <div className="w-full">
-                <span className="text-xs font-bold text-ink group-hover:text-brand truncate block">
+              {cat.image_url ? (
+                <div className="absolute inset-0 z-0">
+                  <img
+                    src={cat.image_url}
+                    alt={cat.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    className="transition-transform duration-300 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                </div>
+              ) : (
+                <div className="w-14 h-14 rounded-2xl bg-brand-soft text-brand flex items-center justify-center font-bold text-xl group-hover:scale-105 transition-transform shadow-xs z-10">
+                  {cat.name[0]}
+                </div>
+              )}
+              <div className={`relative z-10 mt-auto w-full ${cat.image_url ? 'text-white' : 'text-ink'}`}>
+                <span className="text-xs font-bold truncate block">
                   {cat.name}
                 </span>
-                <span className="text-[10px] text-ink-muted">{cat.product_count || 50}+ items</span>
+                <span className={`text-[10px] ${cat.image_url ? 'text-white/80' : 'text-ink-muted'}`}>{cat.product_count || 50}+ items</span>
               </div>
             </Link>
           ))}
