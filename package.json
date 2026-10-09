@@ -1,0 +1,36 @@
+{
+  "name": "meesho-haat-ecom",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=server\" \"npm run dev --workspace=client\"",
+    "build": "npm run build --workspace=client",
+    "lint": "eslint client server",
+    "db:seed": "node supabase/seed/import.mjs",
+    "test": "npm test --workspace=server"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.48.1",
+    "compression": "^1.7.5",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.0.1",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "pino": "^9.6.0",
+    "pino-http": "^10.4.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "concurrently": "^9.1.2",
+    "csv-parse": "^5.6.0",
+    "eslint": "^9.18.0",
+    "prettier": "^3.4.2"
+  }
+}
